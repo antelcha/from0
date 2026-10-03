@@ -1,24 +1,24 @@
 <title>Kökten</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,650&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
-/* Layout: single column; sentence input on top, then an indented tree whose branches draw themselves as Claude names each fact */
+/* Layout: input on top; a pyramid of facts (axioms at the base, the sentence at the apex) drawn bottom-up; a sticky panel that walks the derivation step by step */
 :root{
-  --bg:#f1f3f6; --surface:#ffffff; --fg:#18202b; --muted:#5a6575; --line:#c9d1dc;
-  --accent:#2c4f86; --accent-fg:#ffffff;
+  --bg:#f1f3f6; --surface:#ffffff; --fg:#18202b; --muted:#5a6575; --line:#c3ccd8;
+  --accent:#2c4f86; --accent-fg:#ffffff; --base:#e4eaf3; --hot:#d08a1f;
   --ok:#2f7a4a; --part:#a8680e; --bad:#b23a2e; --unk:#7a8494;
   --display:"Literata",Georgia,serif; --body:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#11161d; --surface:#19202a; --fg:#e4e9f0; --muted:#98a3b3; --line:#334050;
-  --accent:#8fb2ec; --accent-fg:#0d1420;
+  --bg:#11161d; --surface:#19202a; --fg:#e4e9f0; --muted:#98a3b3; --line:#3a4757;
+  --accent:#8fb2ec; --accent-fg:#0d1420; --base:#202b3a; --hot:#f0b252;
   --ok:#6cc48c; --part:#e2a64a; --bad:#ec8679; --unk:#9aa4b3; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#11161d; --surface:#19202a; --fg:#e4e9f0; --muted:#98a3b3; --line:#334050;
-  --accent:#8fb2ec; --accent-fg:#0d1420;
+  --bg:#11161d; --surface:#19202a; --fg:#e4e9f0; --muted:#98a3b3; --line:#3a4757;
+  --accent:#8fb2ec; --accent-fg:#0d1420; --base:#202b3a; --hot:#f0b252;
   --ok:#6cc48c; --part:#e2a64a; --bad:#ec8679; --unk:#9aa4b3; color-scheme:dark}
 
 body{background:var(--bg);color:var(--fg);font:15px/1.55 var(--body);padding-inline:16px}
-.wrap{max-width:860px;margin:0 auto;padding-block:24px 48px;display:flex;flex-direction:column;gap:20px}
+.wrap{max-width:980px;margin:0 auto;padding-block:24px 24px;display:flex;flex-direction:column;gap:18px}
 header{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px}
 h1{font:650 34px/1 var(--display);margin:0;letter-spacing:-.01em}
 .tag{color:var(--muted);font-size:14px}
@@ -27,156 +27,140 @@ h1{font:650 34px/1 var(--display);margin:0;letter-spacing:-.01em}
 
 .ask{display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
 .ask:focus-within{border-color:var(--accent)}
-.ask label{font:500 11px var(--mono);text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
-textarea{width:100%;box-sizing:border-box;resize:vertical;min-height:72px;border:0;background:transparent;color:var(--fg);font:16px/1.5 var(--body);padding:0}
+.lbl{font:500 11px var(--mono);text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+textarea{width:100%;box-sizing:border-box;resize:vertical;min-height:64px;border:0;background:transparent;color:var(--fg);font:16px/1.5 var(--body);padding:0}
 textarea:focus{outline:none}
 .row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
-.build{font:600 14px var(--body);background:var(--accent);color:var(--accent-fg);border:0;border-radius:9px;padding:9px 18px;cursor:pointer}
-.build:disabled{opacity:.5;cursor:default}
+.btn{font:600 14px var(--body);background:var(--accent);color:var(--accent-fg);border:0;border-radius:9px;padding:9px 18px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}
+.btn:disabled{opacity:.45;cursor:default}
 select{font:500 12px var(--mono);color:var(--muted);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:5px 6px}
-.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-left:auto;font-size:12px;color:var(--muted)}
-.legend span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;background:var(--c)}
-
 .banner{font-size:14px;color:var(--bad)}
-.example{align-self:flex-start;font:500 11px var(--mono);text-transform:uppercase;letter-spacing:.09em;color:var(--part);border:1px solid currentColor;border-radius:999px;padding:3px 10px}
+.example{align-self:center;font:500 11px var(--mono);text-transform:uppercase;letter-spacing:.09em;color:var(--part);border:1px solid currentColor;border-radius:999px;padding:3px 10px}
 
-.scroller{overflow-x:auto;padding-bottom:6px}
-ul{list-style:none;margin:0;padding:0}
-.root{font:500 19px/1.45 var(--display);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;max-width:680px;text-wrap:pretty}
-.root::before{content:"Cümle";display:block;font:500 11px var(--mono);text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin-bottom:4px}
+/* pyramid */
+.scroller{overflow-x:auto;padding-block:6px}
+.stage{position:relative;min-width:max-content;margin:0 auto;display:flex;flex-direction:column;gap:46px;padding:4px 8px 4px}
+.stage svg{position:absolute;inset:0;pointer-events:none;overflow:visible}
+.layer{display:flex;justify-content:center;gap:10px;position:relative;z-index:1}
+.axis{display:flex;justify-content:center;margin-top:-34px;font:500 11px var(--mono);text-transform:uppercase;letter-spacing:.09em;color:var(--muted);padding-inline:8px}
 
-.kids{padding-left:28px;margin-left:14px}
-.kids.closed{display:none}
-.kids>li{position:relative;padding-top:12px}
-.kids>li::before{content:"";position:absolute;left:-28px;top:0;width:22px;height:32px;border-left:2px solid var(--line);border-bottom:2px solid var(--line);border-bottom-left-radius:12px;animation:drawH .35s ease-out both;animation-delay:calc(var(--i,0)*110ms)}
-.kids>li:not(:last-child)::after{content:"";position:absolute;left:-28px;top:0;bottom:0;border-left:2px solid var(--line);animation:drawV .4s ease-out both;animation-delay:calc(var(--i,0)*110ms)}
-.kids>li>.card,.kids>li>.loader{animation:pop .45s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0)*110ms + 120ms)}
-@keyframes drawH{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
-@keyframes drawV{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0 0 0 0)}}
-@keyframes pop{from{opacity:0;transform:translateX(-8px) scale(.98)}to{opacity:1;transform:none}}
+.node{position:relative;width:118px;box-sizing:border-box;padding:8px 9px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:500 12.5px/1.3 var(--body);text-align:center;text-wrap:balance;cursor:pointer;animation:rise .5s cubic-bezier(.2,.7,.2,1) both;animation-delay:var(--d,0ms);transition:opacity .35s,border-color .2s,box-shadow .2s,transform .2s}
+.node.l0{background:var(--base)}
+.node.apex{width:auto;max-width:300px;padding:10px 16px;font:650 15px/1.3 var(--display)}
+.node:hover{border-color:var(--accent)}
+.node .dot{position:absolute;top:-4px;right:-4px;width:10px;height:10px;border-radius:50%;background:var(--vc);box-shadow:0 0 0 2px var(--bg)}
+.v-kismen{--vc:var(--part)} .v-yanlis{--vc:var(--bad)} .v-belirsiz{--vc:var(--unk)} .v-dogru{--vc:var(--ok)}
+.node.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent);transform:translateY(-2px)}
+.node.in{border-color:var(--hot);box-shadow:0 0 0 2px var(--hot)}
+.node.out{border-style:dashed;border-color:var(--accent)}
+.node.veil{opacity:.08;pointer-events:none;animation:none}
+.node.just{animation:rise .5s cubic-bezier(.2,.7,.2,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
 
-.card{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 13px 11px;min-width:220px;max-width:620px;box-sizing:border-box}
-.card::before{content:"";position:absolute;left:-7px;top:13px;width:10px;height:10px;border-radius:50%;background:var(--vc);box-shadow:0 0 0 3px var(--bg)}
-.v-dogru{--vc:var(--ok)} .v-kismen{--vc:var(--part)} .v-yanlis{--vc:var(--bad)} .v-belirsiz{--vc:var(--unk)}
-.top{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
-.card h3{font:600 15px/1.35 var(--body);margin:0;flex:1 1 200px;text-wrap:balance}
-.chip{font:500 11px var(--mono);letter-spacing:.04em;color:var(--vc);white-space:nowrap}
-.card p{margin:4px 0 0;font-size:14px;color:var(--fg);overflow-wrap:anywhere}
-.card .n{color:var(--vc);font-size:13.5px}
-.card .n::before{content:"Düzeltme: ";font-weight:600}
-.acts{margin-top:8px;display:flex;gap:10px;align-items:center}
-.open{font:600 13px var(--body);color:var(--accent);background:none;border:0;padding:2px 0;cursor:pointer}
-.open:disabled{color:var(--muted);cursor:default}
-.open.base{color:var(--muted);font-weight:500}
-.basechip{font:500 11px var(--mono);color:var(--muted)}
-.err{font-size:13px;color:var(--bad)}
+path.e{fill:none;stroke:var(--line);stroke-width:1.6;transition:opacity .35s,stroke .2s}
+path.e.draw{stroke-dasharray:1;stroke-dashoffset:1;animation:draw .6s ease-out forwards;animation-delay:var(--d,0ms)}
+path.e.hot{stroke:var(--hot);stroke-width:2.4}
+path.e.veil{opacity:0}
+@keyframes draw{to{stroke-dashoffset:0}}
 
-.loader{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);padding:8px 2px}
+/* panel */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.panel h2{font:650 19px/1.3 var(--display);margin:0;text-wrap:balance}
+.panel p{margin:0;max-width:68ch}
+.panel .n{color:var(--vc)} .panel .n b{font-weight:600}
+.meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
+.verdict{font:500 11px var(--mono);color:var(--vc)}
+.refs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
+.ref{font:500 12.5px var(--body);color:var(--fg);background:var(--bg);border:1px solid var(--hot);border-radius:999px;padding:3px 10px;cursor:pointer}
+.ref.up{border-color:var(--accent);border-style:dashed}
+.nav{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:4px}
+.count{font:500 12px var(--mono);color:var(--muted);margin-right:auto}
+.loading{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:14px}
 .dots{display:inline-flex;gap:4px}
 .dots i{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:blink 1.1s infinite ease-in-out}
 .dots i:nth-child(2){animation-delay:.18s} .dots i:nth-child(3){animation-delay:.36s}
 @keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
-.stop{font:500 12px var(--body);color:var(--muted);background:none;border:1px solid var(--line);border-radius:6px;padding:2px 8px;cursor:pointer}
+.err{color:var(--bad);font-size:14px}
 
 button:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important}}
-@media (max-width:480px){h1{font-size:28px}.kids{padding-left:20px;margin-left:8px}.kids>li::before,.kids>li:not(:last-child)::after{left:-20px}.kids>li::before{width:15px}.card{min-width:200px}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}path.e.draw{stroke-dashoffset:0}}
+@media (max-width:480px){h1{font-size:28px}.node{width:104px;font-size:12px}.stage{gap:38px}}
 </style>
 
 <div class="wrap">
   <header>
     <h1>Kökten</h1>
-    <span class="tag">Bir cümleyi dayandığı fact'lere kadar aç.</span>
+    <span class="tag">Bir cümleyi aksiyomlarından başlayarak anla.</span>
     <span class="status" id="status">bağlanıyor…</span>
   </header>
 
   <form class="ask" id="form">
-    <label for="sentence">Anlamak istediğin cümle</label>
+    <label class="lbl" for="sentence">Anlamak istediğin cümle</label>
     <textarea id="sentence">Sulawesi Adası'nda ölüleriyle yaşayan Toraja Kabilesi. Toraja Halkı ölülerini gömmeden önce birkaç seneye kadar beraber yaşayabiliyorlar hatta yemek ikram ediyorlar ölülerine.</textarea>
     <div class="row">
-      <button class="build" id="build" type="submit" disabled>Ağacı kur</button>
+      <button class="btn" id="build" type="submit" disabled>Piramidi kur</button>
       <select id="tier" aria-label="Model">
         <option value="quick">hızlı</option>
         <option value="default" selected>dengeli</option>
         <option value="complex">derin</option>
       </select>
-      <div class="legend">
-        <span style="--c:var(--ok)">doğru</span>
-        <span style="--c:var(--part)">kısmen</span>
-        <span style="--c:var(--bad)">yanlış</span>
-        <span style="--c:var(--unk)">belirsiz</span>
-      </div>
     </div>
   </form>
 
   <div class="banner" id="banner" hidden></div>
-  <span class="example" id="exampleTag">Örnek ağaç · kendi cümleni yazıp "Ağacı kur"a bas</span>
+  <span class="example" id="exampleTag">Örnek piramit · kendi cümleni yazıp "Piramidi kur"a bas</span>
 
-  <div class="scroller"><ul id="tree"></ul></div>
+  <div class="scroller" id="scroller">
+    <div class="stage" id="stage"><svg id="edges" aria-hidden="true"></svg></div>
+  </div>
+
+  <section class="panel" id="panel" aria-live="polite"></section>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
+const SVGNS = "http://www.w3.org/2000/svg";
 const VERDICT = { dogru: "doğru", kismen: "kısmen doğru", yanlis: "yanlış", belirsiz: "belirsiz" };
-const FORMAT = `Her satıra tek bir JSON nesnesi yaz. Başka hiçbir şey yazma: giriş cümlesi, kod bloğu, numara yok.
-{"t":"kısa başlık, en fazla 8 kelime","d":"2-3 cümlelik somut açıklama; yer, sayı, isim ver","v":"dogru|kismen|yanlis|belirsiz","n":"v kismen, yanlis ya da belirsiz ise neyin farklı olduğu; dogru ise boş","k":true}
-"v": iddianın gerçekte ne kadar doğru olduğu. "k": bu iddiayı anlamak için daha temel fact'lere inilebiliyorsa true; artık herkesin bildiği temel bir bilgiyse false.
-Her şeyi Türkçe yaz.`;
-
 const ERR = {
   not_granted: "Bu sayfanın Claude kullanmasına izin verilmedi. İzin vermek için sayfayı yeniden yükle.",
   sampling_disabled: "Bu hesapta Claude kullanılamıyor.",
   rate_limited: "Çok fazla istek gitti ya da kullanım limitin doldu. Biraz sonra tekrar dene.",
   session_expired: "Oturumun kapanmış. claude.ai'a tekrar giriş yap.",
-  refused: "Claude bu dala yanıt vermedi.",
+  refused: "Claude bu cümle için piramit kurmadı. Cümleyi değiştirip tekrar dene.",
   prompt_too_large: "Metin çok uzun. Daha kısa bir cümle dene.",
 };
 const FATAL = ["not_granted","sampling_disabled","not_declared","capability_disabled","capability_removed"];
 
-let sample = null;
-let root = null;
-const running = new Set();
-
-/* ---------- prompts ---------- */
-function rootPrompt(s){
-  return `Kullanıcı şu cümleyi temelden anlamak istiyor:
+function prompt(s){
+  return `Kullanıcı şu cümleyi, bir matematik ifadesini aksiyomlardan kurar gibi, en temel bilgilerden başlayarak anlamak istiyor:
 """${s}"""
 
-Cümleyi içerdiği ayrı iddialara (fact'lere) ayır. Her iddia tek bir şey söylesin. Cümlede açıkça yazmayan ama cümlenin dayandığı örtük bilgileri de ekle (örneğin bir yerin nerede olduğu, bir kavramın ne olduğu). Cümledeki abartı ya da hataları "v" ve "n" ile belirt. 3-7 iddia.
+Bu cümleyi tepeye koyan bir bilgi piramidi kur:
+- Seviye 0: aksiyomlar. Başka bir şeye dayanmadan anlaşılan, herkesin kabul edeceği en temel fact'ler. 5-8 tane.
+- Her üst seviyedeki fact, yalnızca daha alt seviyelerdeki fact'lerden çıkar. Yukarı çıktıkça her seviyede daha az fact olsun.
+- En üstte tek düğüm: cümlenin kendisi, kısaltılmış hâliyle. Toplam 4-6 seviye.
+- "u": düğümün dayandığı alt düğümlerin id'leri. Seviye 0'da boş. Diğer her düğüm en az bir alt düğüme dayansın. Tepe dışındaki her düğüm en az bir üst düğümde kullanılsın.
+- "d": aksiyomlarda fact'in kendisini açıkla. Üst düğümlerde bu fact'in dayandığı düğümlerden NASIL çıktığını açıkla.
+- Cümledeki hata ya da abartıları ilgili düğümde "v" ve "n" ile belirt; tepe düğümün "v" değeri cümlenin bütün olarak ne kadar doğru olduğunu söylesin.
 
-${FORMAT}`;
-}
-function childPrompt(n){
-  const path = [];
-  for (let p = n; p && p !== root; p = p.parent) path.unshift(p);
-  const trail = path.map((p, i) => `${i + 1}. ${p.t}`).join("\n");
-  return `Kullanıcı şu cümleyi temelden anlamaya çalışıyor:
-"""${root.t}"""
-
-Bir fact ağacında şu yoldan aşağı iniyor:
-${trail}
-
-Son iddia: "${n.t}". ${n.d}
-
-Bu son iddiayı anlamak için bilinmesi gereken daha temel fact'leri ver: neden böyle, neye dayanıyor, hangi kavramı ya da tarihi bilmek gerekiyor. Yoldaki üst iddiaları tekrar etme. 2-5 fact.
-
-${FORMAT}`;
+Düğümleri seviye sırasıyla yaz: önce bütün seviye 0, sonra seviye 1, en son tepe. Her satıra tek bir JSON nesnesi yaz. Başka hiçbir şey yazma: giriş, kod bloğu, numara yok.
+{"id":"a1","l":0,"t":"en fazla 6 kelimelik başlık","d":"1-3 cümle","u":[],"v":"dogru|kismen|yanlis|belirsiz","n":"v dogru değilse düzeltme, dogru ise boş"}
+Her şeyi Türkçe yaz.`;
 }
 
-/* ---------- parsing ---------- */
-function parseLine(line){
-  const a = line.indexOf("{"), b = line.lastIndexOf("}");
-  if (a < 0 || b <= a) return null;
-  try {
-    const o = JSON.parse(line.slice(a, b + 1));
-    const t = String(o.t || "").trim(), d = String(o.d || "").trim();
-    if (!t) return null;
-    const v = VERDICT[o.v] ? o.v : "belirsiz";
-    return { t, d, v, n: String(o.n || "").trim(), k: o.k !== false };
-  } catch { return null; }
-}
+/* ---------- state ---------- */
+let sample = null;
+let nodes = new Map();      // id -> node
+let order = [];             // insertion order (bottom-up)
+let edges = [];             // {from: lower id, to: upper id, path}
+let layers = new Map();     // level -> element
+let selected = null;
+let step = -1;              // -1 = free mode, else index into steps
+let steps = [];
+let building = false;
+let ctl = null;
 
-/* ---------- rendering ---------- */
 function el(tag, cls, text){
   const e = document.createElement(tag);
   if (cls) e.className = cls;
@@ -184,126 +168,237 @@ function el(tag, cls, text){
   return e;
 }
 
-function renderRoot(){
-  const tree = $("tree");
-  tree.textContent = "";
-  const li = el("li");
-  li.appendChild(el("div", "root", root.t));
-  root.kidsEl = el("ul", "kids");
-  li.appendChild(root.kidsEl);
-  tree.appendChild(li);
+function reset(){
+  nodes = new Map(); order = []; edges = []; layers = new Map();
+  selected = null; step = -1; steps = [];
+  const stage = $("stage");
+  stage.querySelectorAll(".layer,.axis").forEach(x => x.remove());
+  $("edges").textContent = "";
+  const axis = el("div", "axis");
+  axis.style.order = 1;
+  axis.append(el("span", null, "↑ temel bilgiler · aksiyomlar"));
+  stage.appendChild(axis);
 }
 
-function addChild(parent, data, i){
-  const n = { ...data, parent, kids: null };
-  parent.kids.push(n);
-  const li = el("li");
-  li.style.setProperty("--i", i);
-  const card = el("div", "card v-" + n.v);
-  const top = el("div", "top");
-  top.append(el("h3", null, n.t), el("span", "chip", VERDICT[n.v]));
-  card.appendChild(top);
-  if (n.d) card.appendChild(el("p", "d", n.d));
-  if (n.n && n.v !== "dogru") card.appendChild(el("p", "n", n.n));
-  const acts = el("div", "acts");
-  n.btn = el("button", "open" + (n.k ? "" : " base"), n.k ? "Neye dayanıyor? ↓" : "Yine de aç ↓");
-  n.btn.type = "button";
-  n.btn.disabled = !sample;
-  n.btn.addEventListener("click", () => toggle(n));
-  if (!n.k) acts.appendChild(el("span", "basechip", "temel bilgi"));
-  acts.prepend(n.btn);
-  card.appendChild(acts);
-  li.appendChild(card);
-  n.kidsEl = el("ul", "kids");
-  li.appendChild(n.kidsEl);
-  parent.kidsEl.appendChild(li);
+function layer(l){
+  if (!layers.has(l)){
+    const row = el("div", "layer");
+    row.style.order = -l;
+    layers.set(l, row);
+    $("stage").appendChild(row);
+  }
+  return layers.get(l);
+}
+
+function parseLine(line){
+  const a = line.indexOf("{"), b = line.lastIndexOf("}");
+  if (a < 0 || b <= a) return null;
+  try {
+    const o = JSON.parse(line.slice(a, b + 1));
+    const id = String(o.id || "").trim(), t = String(o.t || "").trim();
+    const l = Math.max(0, Math.round(Number(o.l)) || 0);
+    if (!id || !t || nodes.has(id)) return null;
+    return { id, l, t, d: String(o.d || "").trim(), u: Array.isArray(o.u) ? o.u.map(String) : [],
+             v: VERDICT[o.v] ? o.v : "belirsiz", n: String(o.n || "").trim() };
+  } catch { return null; }
+}
+
+function addNode(d, delay = 0){
+  const n = { ...d, u: d.u.filter(x => nodes.has(x) && nodes.get(x).l < d.l), ups: [] };
+  nodes.set(n.id, n); order.push(n);
+  const b = el("button", "node v-" + n.v, n.t);
+  b.type = "button";
+  if (n.l === 0) b.classList.add("l0");
+  b.style.setProperty("--d", delay + "ms");
+  if (n.v !== "dogru") b.appendChild(el("i", "dot"));
+  b.addEventListener("click", () => select(n.id));
+  n.el = b;
+  layer(n.l).appendChild(b);
+  for (const id of n.u){
+    nodes.get(id).ups.push(n.id);
+    const p = document.createElementNS(SVGNS, "path");
+    p.setAttribute("class", "e draw");
+    p.setAttribute("pathLength", "1");
+    p.style.setProperty("--d", (delay + 150) + "ms");
+    $("edges").appendChild(p);
+    edges.push({ from: id, to: n.id, path: p });
+  }
+  layoutSoon();
   return n;
 }
 
-function setOpenLabel(n){
-  const c = n.kids.length;
-  n.btn.textContent = n.kidsEl.classList.contains("closed") ? `Göster (${c}) ↓` : `Gizle (${c}) ↑`;
+function markApex(){
+  let max = -1;
+  for (const n of order) max = Math.max(max, n.l);
+  for (const n of order) n.el.classList.toggle("apex", n.l === max && order.length > 1);
+  layoutSoon();
 }
 
-function toggle(n){
-  if (n.loading) return;
-  if (n.kids && n.kids.length){
-    n.kidsEl.classList.toggle("closed");
-    setOpenLabel(n);
+/* ---------- edges geometry ---------- */
+let raf = 0;
+function layoutSoon(){ if (!raf) raf = requestAnimationFrame(() => { raf = 0; layout(); }); }
+function layout(){
+  const stage = $("stage"), r0 = stage.getBoundingClientRect();
+  const svg = $("edges");
+  svg.setAttribute("width", stage.scrollWidth); svg.setAttribute("height", stage.scrollHeight);
+  for (const e of edges){
+    const a = nodes.get(e.from).el.getBoundingClientRect(), b = nodes.get(e.to).el.getBoundingClientRect();
+    const x1 = a.left + a.width / 2 - r0.left, y1 = a.top - r0.top;
+    const x2 = b.left + b.width / 2 - r0.left, y2 = b.bottom - r0.top;
+    const my = (y1 + y2) / 2;
+    e.path.setAttribute("d", `M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2}`);
+  }
+}
+new ResizeObserver(layoutSoon).observe($("stage"));
+function centerScroll(){ const s = $("scroller"); s.scrollLeft = (s.scrollWidth - s.clientWidth) / 2; }
+
+/* ---------- selection & panel ---------- */
+function levelName(n){
+  if (n.el.classList.contains("apex")) return "Cümle";
+  return n.l === 0 ? "Aksiyom" : `Seviye ${n.l}`;
+}
+
+function select(id){
+  selected = id;
+  const n = nodes.get(id);
+  for (const m of order) m.el.classList.remove("sel", "in", "out");
+  for (const e of edges) e.path.classList.toggle("hot", e.to === id);
+  if (n){
+    n.el.classList.add("sel");
+    n.u.forEach(x => nodes.get(x).el.classList.add("in"));
+    if (step < 0) n.ups.forEach(x => nodes.get(x).el.classList.add("out"));
+  }
+  renderPanel();
+}
+
+function refChip(id, up){
+  const m = nodes.get(id);
+  const c = el("button", "ref" + (up ? " up" : ""), m.t);
+  c.type = "button";
+  c.addEventListener("click", () => { if (step >= 0) exitSteps(); select(id); });
+  return c;
+}
+
+function renderPanel(){
+  const p = $("panel");
+  p.textContent = "";
+  if (building){
+    const row = el("div", "loading");
+    const dots = el("span", "dots"); dots.append(el("i"), el("i"), el("i"));
+    const stop = el("button", "btn ghost", "Durdur"); stop.type = "button";
+    stop.addEventListener("click", () => ctl?.abort());
+    row.append(dots, el("span", null, order.length ? `Claude piramidi kuruyor · ${order.length} fact` : "Claude aksiyomları düşünüyor"));
+    p.append(row);
+    const nav = el("div", "nav"); nav.append(el("span", "count"), stop); p.append(nav);
     return;
   }
-  load(n);
+  if (!order.length){ p.append(el("p", null, "Bir cümle yaz ve piramidi kur.")); return; }
+
+  const n = nodes.get(selected);
+  if (n){
+    const meta = el("div", "meta v-" + n.v);
+    meta.append(el("span", "lbl", levelName(n)), el("span", "verdict", VERDICT[n.v]));
+    p.append(meta, el("h2", null, n.t));
+    if (n.d) p.append(el("p", null, n.d));
+    if (n.n && n.v !== "dogru"){
+      const c = el("p", "n v-" + n.v); c.append(el("b", null, "Düzeltme: "), n.n); p.append(c);
+    }
+    if (n.u.length){
+      const r = el("div", "refs"); r.append(el("span", null, "Dayandığı:"));
+      n.u.forEach(id => r.append(refChip(id, false))); p.append(r);
+    }
+    if (step < 0 && n.ups.length){
+      const r = el("div", "refs"); r.append(el("span", null, "Üstüne kurulan:"));
+      n.ups.forEach(id => r.append(refChip(id, true))); p.append(r);
+    }
+  } else {
+    p.append(el("p", null, "Aksiyomlardan başlayıp cümleye kadar adım adım çık. Ya da piramitte istediğin bir düğüme tıkla."));
+  }
+
+  const nav = el("div", "nav");
+  if (step >= 0){
+    nav.append(el("span", "count", `Adım ${step + 1} / ${steps.length}`));
+    const back = el("button", "btn ghost", "← Geri"); back.type = "button"; back.disabled = step === 0;
+    back.addEventListener("click", () => setStep(step - 1));
+    const all = el("button", "btn ghost", "Hepsini göster"); all.type = "button";
+    all.addEventListener("click", () => { exitSteps(); select(steps[steps.length - 1].id); });
+    const next = el("button", "btn", step === steps.length - 1 ? "Bitti" : "İleri →"); next.type = "button";
+    next.addEventListener("click", () => step === steps.length - 1 ? exitSteps() : setStep(step + 1));
+    nav.append(back, all, next);
+  } else {
+    nav.append(el("span", "count", `${order.length} fact · ${new Set(order.map(x => x.l)).size} seviye`));
+    const go = el("button", "btn", "Aksiyomlardan başla ↑"); go.type = "button";
+    go.addEventListener("click", startSteps);
+    nav.append(go);
+  }
+  p.append(nav);
 }
 
-/* ---------- asking Claude ---------- */
-async function load(n){
-  if (!sample) return;
-  n.loading = true;
-  n.kids = [];
-  n.kidsEl.textContent = "";
-  n.kidsEl.classList.remove("closed");
-  if (n.btn){ n.btn.disabled = true; n.btn.textContent = "Açılıyor…"; }
-  n.errEl?.remove(); n.errEl = null;
+/* ---------- step-by-step mode ---------- */
+function startSteps(){
+  steps = [...order].sort((a, b) => a.l - b.l);
+  setStep(0);
+}
+function setStep(k){
+  step = k;
+  const shown = new Set(steps.slice(0, k + 1).map(n => n.id));
+  for (const n of order){
+    const was = n.el.classList.contains("veil");
+    n.el.classList.toggle("veil", !shown.has(n.id));
+    if (was && shown.has(n.id)){ n.el.classList.remove("just"); void n.el.offsetWidth; n.el.classList.add("just"); }
+  }
+  for (const e of edges){
+    const vis = shown.has(e.from) && shown.has(e.to);
+    e.path.classList.toggle("veil", !vis);
+    if (vis && e.to === steps[k].id){ e.path.classList.remove("draw"); void e.path.getBBox(); e.path.style.setProperty("--d", "120ms"); e.path.classList.add("draw"); }
+  }
+  select(steps[k].id);
+  steps[k].el.scrollIntoView({ block: "nearest", inline: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+}
+function exitSteps(){
+  step = -1;
+  for (const n of order) n.el.classList.remove("veil");
+  for (const e of edges) e.path.classList.remove("veil");
+  select(selected);
+}
 
-  const ctl = new AbortController();
-  running.add(ctl);
-  const loadLi = el("li");
-  const loader = el("div", "loader");
-  const dots = el("span", "dots"); dots.append(el("i"), el("i"), el("i"));
-  const stop = el("button", "stop", "Durdur"); stop.type = "button";
-  stop.addEventListener("click", () => ctl.abort());
-  loader.append(dots, el("span", null, "Claude düşünüyor"), stop);
-  loadLi.appendChild(loader);
-  n.kidsEl.appendChild(loadLi);
-
-  let pending = "";
+/* ---------- building with Claude ---------- */
+async function build(s){
+  ctl?.abort();
+  reset();
+  $("exampleTag").hidden = true;
+  building = true;
+  $("build").disabled = true;
+  renderPanel();
+  ctl = new AbortController();
+  const my = ctl;
+  let pending = "", failure = null;
   const eat = chunk => {
     const lines = (pending + chunk).split("\n");
     pending = lines.pop();
     for (const line of lines){
       const d = parseLine(line);
-      if (d){ addChild(n, d, 0); n.kidsEl.appendChild(loadLi); }
+      if (d){ addNode(d); if (order.length === 1) requestAnimationFrame(centerScroll); renderPanel(); }
     }
   };
-
-  let failure = null;
   try {
-    await sample(n === root ? rootPrompt(n.t) : childPrompt(n), {
-      signal: ctl.signal,
-      modelTier: $("tier").value,
-      onText: ({ delta }) => eat(delta),
-    });
-  } catch (e) {
-    failure = e;
-  } finally {
-    running.delete(ctl);
-  }
+    await sample(prompt(s), { signal: my.signal, modelTier: $("tier").value, onText: ({ delta }) => eat(delta) });
+  } catch (e) { failure = e; }
+  if (my !== ctl) return;           // a newer build replaced this one
   const last = parseLine(pending);
-  if (last) addChild(n, last, 0);
-  loadLi.remove();
-  n.loading = false;
+  if (last) addNode(last);
+  building = false;
+  $("build").disabled = !sample;
+  markApex();
+  requestAnimationFrame(centerScroll);
 
   if (failure && FATAL.includes(failure.code)){ shutDown(ERR[failure.code] || "Claude bu sayfada kullanılamıyor."); }
-  if (!n.kids.length){
-    n.kids = null;
-    if (failure?.code !== "cancelled" && !(failure && FATAL.includes(failure.code))){
-      const msg = failure ? (ERR[failure.code] || "Bağlantı sorunu oldu.") : "Anlaşılır bir yanıt gelmedi.";
-      showError(n, msg + " Tekrar denemek için butona bas.");
-    }
-    if (n.btn){ n.btn.disabled = !sample; n.btn.textContent = n.k ? "Neye dayanıyor? ↓" : "Yine de aç ↓"; }
-    return;
+  renderPanel();
+  if (!order.length && failure?.code !== "cancelled"){
+    $("panel").prepend(el("p", "err", failure ? (ERR[failure.code] || "Bağlantı sorunu oldu. Tekrar dene.") : "Anlaşılır bir yanıt gelmedi. Tekrar dene."));
+  } else if (failure && failure.code !== "cancelled" && !FATAL.includes(failure.code)){
+    $("panel").prepend(el("p", "err", (ERR[failure.code] || "Bağlantı yarıda kesildi.") + " Piramit eksik kalmış olabilir."));
   }
-  if (failure && failure.code !== "cancelled" && !FATAL.includes(failure.code)){
-    showError(n, (ERR[failure.code] || "Bağlantı yarıda kesildi.") + " Bu dal eksik kalmış olabilir.");
-  }
-  if (n.btn){ n.btn.disabled = false; setOpenLabel(n); }
-}
-
-function showError(n, msg){
-  const e = el("p", "err", msg);
-  if (n === root){ e.style.marginTop = "10px"; root.kidsEl.before(e); }
-  else n.btn.closest(".card").appendChild(e);
-  n.errEl = e;
 }
 
 function shutDown(msg){
@@ -311,7 +406,6 @@ function shutDown(msg){
   $("status").innerHTML = "Claude: <b>kapalı</b>";
   $("status").classList.add("off");
   $("build").disabled = true;
-  document.querySelectorAll(".open").forEach(b => b.disabled = true);
   $("banner").textContent = msg;
   $("banner").hidden = false;
 }
@@ -319,55 +413,39 @@ function shutDown(msg){
 $("form").addEventListener("submit", e => {
   e.preventDefault();
   const s = $("sentence").value.trim();
-  if (!s || !sample) return;
-  running.forEach(c => c.abort());
-  $("exampleTag").hidden = true;
-  root = { t: s, kids: [], parent: null };
-  renderRoot();
-  load(root);
+  if (s && sample && !building) build(s);
 });
 
-/* ---------- example tree (shown until the first build) ---------- */
-const EXAMPLE = {
-  t: $("sentence").value,
-  kids: [
-    { t: "Sulawesi, Endonezya'da bir ada", d: "Sulawesi, Borneo ile Yeni Gine arasında, Endonezya'nın en büyük adalarından biri. Dört kollu, alışılmadık bir şekli var.", v: "dogru", n: "", k: true },
-    { t: "Toraja, Güney Sulawesi dağlarında yaşayan bir halk", d: "Toraja halkı adanın güneyindeki dağlık Tana Toraja bölgesinde yaşar. Çoğu bugün Hristiyan, ama eski Aluk To Dolo inancının cenaze gelenekleri sürüyor.", v: "dogru", n: "", k: true },
-    { t: "Ölüler aylarca, bazen yıllarca evde kalır", d: "Ölen kişi cenaze töreni yapılana kadar ailenin evinde tutulur. Bu süre birkaç haftadan birkaç yıla uzayabilir. Beden eskiden bitkilerle, bugün çoğunlukla formalinle korunur.", v: "dogru", n: "", k: true },
-    { t: "Ölü, ölmüş değil 'hasta' sayılır", d: "Cenazeye kadar kişiye to makula', yani hasta denir. Aile onunla konuşur ve odasında yalnız bırakmamaya çalışır.", v: "dogru", n: "", k: true },
-    { t: "Ölülere yemek ikram edilir", d: "Hasta sayılan kişiye günde birkaç kez yemek, su ve kahve götürülür. Bu, ona hâlâ ailenin bir üyesi gibi davranmanın parçasıdır.", v: "dogru", n: "", k: false },
-    { t: "Gömmeyi geciktiren şey pahalı cenaze töreni", d: "Rambu Solo' adlı tören günlerce sürer ve çok sayıda manda ile domuz kurban edilir. Aile bu masrafı biriktirene kadar tören ertelenir.", v: "dogru", n: "", k: true,
-      kids: [
-        { t: "Manda, Toraja'da zenginlik ölçüsü", d: "Su mandası (tedong) statü göstergesidir. Alacalı bir manda çok yüksek fiyatlara, bazen bir otomobil fiyatına satılır.", v: "dogru", n: "", k: true },
-        { t: "Kurbanlar ruhu öbür dünyaya taşır", d: "Aluk To Dolo inancına göre ruh, Puya denen öbür dünyaya gider. Kurban edilen mandalar bu yolculukta ona eşlik eder.", v: "dogru", n: "", k: true },
-      ] },
-    { t: "Ölüler aslında gömülmez", d: "Cümle 'gömmeden önce' diyor, ama tören sonunda beden toprağa değil kayalara oyulmuş mezarlara, mağaralara ya da asılı tabutlara konur.", v: "kismen", n: "Toraja ölülerini çoğunlukla toprağa gömmez; 'defnetmek' daha doğru bir ifade.", k: true },
-  ],
-};
+/* ---------- example pyramid (shown until the first build) ---------- */
+const EXAMPLE = [
+  { id:"a1", l:0, t:"Endonezya binlerce adadan oluşur", d:"Endonezya, 17 binden fazla adadan oluşan bir ülke. Adaların her birinde farklı diller ve gelenekler gelişmiştir.", u:[] },
+  { id:"a2", l:0, t:"Beden ölümden sonra çürür", d:"Ölümden sonra bakteriler ve enzimler dokuları parçalar. Önlem alınmazsa beden birkaç gün içinde bozulmaya başlar.", u:[] },
+  { id:"a3", l:0, t:"Kimyasallar çürümeyi yavaşlatır", d:"Formalin gibi maddeler dokulardaki proteinleri sabitler ve bakterileri öldürür. Böylece beden aylarca, hatta yıllarca korunabilir.", u:[] },
+  { id:"a4", l:0, t:"Toplumlar ölümü inançlarıyla yorumlar", d:"Her kültür ölümün ne olduğuna ve ölüye nasıl davranılacağına dair kendi kurallarını koyar.", u:[] },
+  { id:"a5", l:0, t:"Kurban, değerli bir şeyi sunmaktır", d:"Birçok inançta değerli bir hayvanı ya da malı feda etmek, saygı ve bağlılık göstermenin yoludur.", u:[] },
+  { id:"a6", l:0, t:"Tarım toplumlarında hayvan servettir", d:"Toprağı süren, taşıyan ve çoğalan hayvanlar, para yerine geçen bir değer olarak görülür.", u:[] },
+  { id:"b1", l:1, t:"Sulawesi, Endonezya'nın büyük bir adası", d:"Endonezya'nın adalarından biri olan Sulawesi, Borneo ile Yeni Gine arasında yer alır ve dört kollu bir şekli vardır.", u:["a1"] },
+  { id:"b2", l:1, t:"Beden evde uzun süre saklanabilir", d:"Beden çürür, ama formalin gibi kimyasallar bunu yavaşlatır. Bu ikisi birleşince bir ölünün evde aylarca tutulması mümkün olur.", u:["a2","a3"] },
+  { id:"b3", l:1, t:"Aluk To Dolo: Toraja'nın atalar inancı", d:"Toraja'nın eski inancı, ölümün ani bir son değil uzun bir geçiş olduğunu söyler. Bugün çoğu Toraja Hristiyan olsa da bu gelenekler sürüyor.", u:["a4"] },
+  { id:"b4", l:1, t:"Manda, en değerli kurbandır", d:"Manda hem servet hem statü göstergesidir. Bu yüzden kurban edilen manda sayısı, ölünün ve ailesinin itibarını gösterir.", u:["a5","a6"] },
+  { id:"c1", l:2, t:"Toraja, Sulawesi dağlarında yaşar", d:"Toraja halkı, Sulawesi'nin güneyindeki dağlık Tana Toraja bölgesinde yaşayan bir topluluktur.", u:["b1"] },
+  { id:"c2", l:2, t:"Ölü, cenazeye kadar 'hasta' sayılır", d:"Aluk To Dolo'ya göre ölüm bir geçiş olduğu için, tören yapılana kadar kişiye to makula', yani hasta denir.", u:["b3"] },
+  { id:"c3", l:2, t:"Rambu Solo' cenazesi çok pahalıdır", d:"Cenaze töreni günler sürer ve onlarca manda kurban edilir. Hem inanç bunu gerektirir hem de mandaların değeri maliyeti çok yükseltir.", u:["b3","b4"] },
+  { id:"d1", l:3, t:"Aile ölüye yemek götürür", d:"Ölü hasta sayıldığı ve beden evde korunabildiği için aile ona yaşayan bir üye gibi davranır: günde birkaç kez yemek ve kahve götürür.", u:["c2","b2"] },
+  { id:"d2", l:3, t:"Para birikene dek cenaze ertelenir", d:"Tören bu kadar pahalı olduğu için aile parayı toplayana kadar bekler. Bu bekleyiş birkaç yıl sürebilir.", u:["c3","b2"] },
+  { id:"top", l:4, t:"Toraja ölüleriyle yıllarca yaşar", d:"Toraja Sulawesi'de yaşar, ölüyü hasta sayıp besler ve pahalı cenazeyi yıllarca erteleyebilir. Cümle büyük ölçüde doğru, tek eksik 'gömme' kelimesi.", u:["c1","d1","d2"], v:"kismen", n:"Toraja ölülerini çoğunlukla toprağa gömmez. Tören sonunda beden kayalara oyulmuş mezarlara, mağaralara ya da asılı tabutlara konur." },
+];
 
-function renderExample(){
-  root = { t: EXAMPLE.t, kids: [], parent: null };
-  renderRoot();
-  EXAMPLE.kids.forEach((d, i) => {
-    const n = addChild(root, d, i);
-    if (d.kids){
-      n.kids = [];
-      d.kids.forEach((dd, j) => addChild(n, dd, i + j + 1));
-      setOpenLabel(n);
-    }
-  });
-}
-renderExample();
+reset();
+EXAMPLE.forEach((d, i) => addNode({ v: "dogru", n: "", ...d }, d.l * 380 + (i % 8) * 70));
+markApex();
+renderPanel();
+requestAnimationFrame(centerScroll);
 
 /* ---------- connect ---------- */
 (async () => {
   try { sample = window.claude ? await window.claude.use("sample") : null; } catch { sample = null; }
-  if (sample){
-    $("status").innerHTML = "Claude: <b>hazır</b>";
-    $("build").disabled = false;
-    document.querySelectorAll(".open").forEach(b => b.disabled = false);
-  } else {
-    shutDown("Claude'a buradan ulaşılamıyor. Sayfayı claude.ai'da giriş yapmış olarak açman gerekiyor.");
-  }
+  if (sample){ $("status").innerHTML = "Claude: <b>hazır</b>"; $("build").disabled = building; }
+  else shutDown("Claude'a buradan ulaşılamıyor. Piramit kurmak için sayfayı claude.ai'da giriş yapmış olarak aç. Örnek piramidi yine de gezebilirsin.");
 })();
 </script>
