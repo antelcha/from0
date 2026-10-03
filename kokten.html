@@ -1,81 +1,78 @@
 <title>Kökten</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,650&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
-/* Layout: input on top; a pyramid of facts (axioms at the base, the sentence at the apex) drawn bottom-up; a sticky panel that walks the derivation step by step */
+/* Layout: one narrow column, phone first. A small dot triangle (axioms at the base, the sentence at the apex) acts as the map; under it, the fact being learned now; under that, every fact in reading order. */
 :root{
   --bg:#f1f3f6; --surface:#ffffff; --fg:#18202b; --muted:#5a6575; --line:#c3ccd8;
-  --accent:#2c4f86; --accent-fg:#ffffff; --base:#e4eaf3; --hot:#d08a1f;
+  --accent:#2c4f86; --accent-fg:#ffffff; --soft:#dfe7f3; --hot:#d08a1f;
   --ok:#2f7a4a; --part:#a8680e; --bad:#b23a2e; --unk:#7a8494;
   --display:"Literata",Georgia,serif; --body:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#11161d; --surface:#19202a; --fg:#e4e9f0; --muted:#98a3b3; --line:#3a4757;
-  --accent:#8fb2ec; --accent-fg:#0d1420; --base:#202b3a; --hot:#f0b252;
+  --accent:#8fb2ec; --accent-fg:#0d1420; --soft:#223047; --hot:#f0b252;
   --ok:#6cc48c; --part:#e2a64a; --bad:#ec8679; --unk:#9aa4b3; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#11161d; --surface:#19202a; --fg:#e4e9f0; --muted:#98a3b3; --line:#3a4757;
-  --accent:#8fb2ec; --accent-fg:#0d1420; --base:#202b3a; --hot:#f0b252;
+  --accent:#8fb2ec; --accent-fg:#0d1420; --soft:#223047; --hot:#f0b252;
   --ok:#6cc48c; --part:#e2a64a; --bad:#ec8679; --unk:#9aa4b3; color-scheme:dark}
 
 body{background:var(--bg);color:var(--fg);font:15px/1.55 var(--body);padding-inline:16px}
-.wrap{max-width:980px;margin:0 auto;padding-block:24px 24px;display:flex;flex-direction:column;gap:18px}
-header{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px}
-h1{font:650 34px/1 var(--display);margin:0;letter-spacing:-.01em}
-.tag{color:var(--muted);font-size:14px}
-.status{margin-left:auto;font:500 12px var(--mono);color:var(--muted)}
+.wrap{max-width:640px;margin:0 auto;padding-block:20px 32px;display:flex;flex-direction:column;gap:16px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 12px}
+h1{font:650 30px/1 var(--display);margin:0;letter-spacing:-.01em}
+.tag{color:var(--muted);font-size:14px;flex:1 1 auto}
+.status{font:500 12px var(--mono);color:var(--muted)}
 .status b{font-weight:500;color:var(--ok)} .status.off b{color:var(--bad)}
-
-.ask{display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
-.ask:focus-within{border-color:var(--accent)}
 .lbl{font:500 11px var(--mono);text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
-textarea{width:100%;box-sizing:border-box;resize:vertical;min-height:64px;border:0;background:transparent;color:var(--fg);font:16px/1.5 var(--body);padding:0}
+
+.ask{display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.ask:focus-within{border-color:var(--accent)}
+textarea{width:100%;box-sizing:border-box;resize:vertical;min-height:60px;border:0;background:transparent;color:var(--fg);font:16px/1.5 var(--body);padding:0}
 textarea:focus{outline:none}
 .row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
-.btn{font:600 14px var(--body);background:var(--accent);color:var(--accent-fg);border:0;border-radius:9px;padding:9px 18px;cursor:pointer}
+.btn{font:600 14px var(--body);background:var(--accent);color:var(--accent-fg);border:0;border-radius:9px;padding:9px 16px;cursor:pointer}
 .btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}
-.btn:disabled{opacity:.45;cursor:default}
+.btn:disabled{opacity:.4;cursor:default}
 select{font:500 12px var(--mono);color:var(--muted);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:5px 6px}
-.banner{font-size:14px;color:var(--bad)}
-.example{align-self:center;font:500 11px var(--mono);text-transform:uppercase;letter-spacing:.09em;color:var(--part);border:1px solid currentColor;border-radius:999px;padding:3px 10px}
+.banner{font-size:14px;color:var(--bad);margin:0}
+.example{align-self:flex-start;font:500 11px var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--part);border:1px solid currentColor;border-radius:999px;padding:3px 10px}
 
-/* pyramid */
-.scroller{overflow-x:auto;padding-block:6px}
-.stage{position:relative;min-width:max-content;margin:0 auto;display:flex;flex-direction:column;gap:46px;padding:4px 8px 4px}
-.stage svg{position:absolute;inset:0;pointer-events:none;overflow:visible}
-.layer{display:flex;justify-content:center;gap:10px;position:relative;z-index:1}
-.axis{display:flex;justify-content:center;margin-top:-34px;font:500 11px var(--mono);text-transform:uppercase;letter-spacing:.09em;color:var(--muted);padding-inline:8px}
-
-.node{position:relative;width:118px;box-sizing:border-box;padding:8px 9px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:500 12.5px/1.3 var(--body);text-align:center;text-wrap:balance;cursor:pointer;animation:rise .5s cubic-bezier(.2,.7,.2,1) both;animation-delay:var(--d,0ms);transition:opacity .35s,border-color .2s,box-shadow .2s,transform .2s}
-.node.l0{background:var(--base)}
-.node.apex{width:auto;max-width:300px;padding:10px 16px;font:650 15px/1.3 var(--display)}
-.node:hover{border-color:var(--accent)}
-.node .dot{position:absolute;top:-4px;right:-4px;width:10px;height:10px;border-radius:50%;background:var(--vc);box-shadow:0 0 0 2px var(--bg)}
-.v-kismen{--vc:var(--part)} .v-yanlis{--vc:var(--bad)} .v-belirsiz{--vc:var(--unk)} .v-dogru{--vc:var(--ok)}
-.node.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent);transform:translateY(-2px)}
-.node.in{border-color:var(--hot);box-shadow:0 0 0 2px var(--hot)}
-.node.out{border-style:dashed;border-color:var(--accent)}
-.node.veil{opacity:.08;pointer-events:none;animation:none}
-.node.just{animation:rise .5s cubic-bezier(.2,.7,.2,1) both}
-@keyframes rise{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
-
-path.e{fill:none;stroke:var(--line);stroke-width:1.6;transition:opacity .35s,stroke .2s}
-path.e.draw{stroke-dasharray:1;stroke-dashoffset:1;animation:draw .6s ease-out forwards;animation-delay:var(--d,0ms)}
-path.e.hot{stroke:var(--hot);stroke-width:2.4}
-path.e.veil{opacity:0}
+/* triangle map */
+.map{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:8px 0 6px}
+.map svg{display:block;width:100%;overflow:visible}
+.map .ends{display:flex;justify-content:space-between;padding:0 12px}
+g.n{cursor:pointer;transition:transform .45s cubic-bezier(.2,.7,.2,1)}
+g.n .hit{fill:transparent}
+g.n .dot{fill:var(--surface);stroke:var(--line);stroke-width:2;transform-box:fill-box;transform-origin:center;animation:pop .45s cubic-bezier(.3,1.4,.5,1) both;transition:fill .3s,stroke .3s,r .3s}
+g.n.learned .dot{fill:var(--accent);stroke:var(--accent)}
+g.n.in .dot{fill:var(--hot);stroke:var(--hot)}
+g.n.cur .dot{fill:var(--accent);stroke:var(--fg);stroke-width:3}
+g.n .ring{fill:none;stroke:var(--accent);stroke-width:2;opacity:0}
+g.n.cur .ring{opacity:.35;transform-box:fill-box;transform-origin:center;animation:pulse 1.8s ease-out infinite}
+g.n:focus-visible{outline:none} g.n:focus-visible .dot{stroke:var(--hot);stroke-width:3}
+@keyframes pop{from{transform:scale(0)}to{transform:scale(1)}}
+@keyframes pulse{from{transform:scale(1);opacity:.45}to{transform:scale(1.9);opacity:0}}
+path.e{fill:none;stroke:var(--line);stroke-width:1.5;stroke-dasharray:1;stroke-dashoffset:1;animation:draw .55s ease-out .15s forwards;transition:stroke .3s,opacity .3s}
+path.e.learned{stroke:var(--accent);opacity:.45}
+path.e.hot{stroke:var(--hot);opacity:1;stroke-width:2.5}
 @keyframes draw{to{stroke-dashoffset:0}}
 
-/* panel */
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
-.panel h2{font:650 19px/1.3 var(--display);margin:0;text-wrap:balance}
-.panel p{margin:0;max-width:68ch}
-.panel .n{color:var(--vc)} .panel .n b{font-weight:600}
-.meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
+/* current fact */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px 12px;display:flex;flex-direction:column;gap:8px;min-height:150px}
+.card.flip{animation:flip .35s ease-out}
+@keyframes flip{from{opacity:.2;transform:translateY(6px)}to{opacity:1;transform:none}}
+.meta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px}
 .verdict{font:500 11px var(--mono);color:var(--vc)}
+.v-dogru{--vc:var(--ok)} .v-kismen{--vc:var(--part)} .v-yanlis{--vc:var(--bad)} .v-belirsiz{--vc:var(--unk)}
+.card h2{font:650 20px/1.3 var(--display);margin:0;text-wrap:balance}
+.card p{margin:0}
+.card .n{color:var(--vc);font-size:14px} .card .n b{font-weight:600}
 .refs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
-.ref{font:500 12.5px var(--body);color:var(--fg);background:var(--bg);border:1px solid var(--hot);border-radius:999px;padding:3px 10px;cursor:pointer}
-.ref.up{border-color:var(--accent);border-style:dashed}
-.nav{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:4px}
-.count{font:500 12px var(--mono);color:var(--muted);margin-right:auto}
+.ref{font:500 13px/1.3 var(--body);color:var(--fg);background:var(--bg);border:1.5px solid var(--hot);border-radius:999px;padding:4px 10px;cursor:pointer;text-align:left}
+.ref.up{border-color:var(--line);border-style:dashed}
+.nav{display:flex;align-items:center;gap:8px;margin-top:4px;padding-top:10px;border-top:1px solid var(--line)}
+.count{font:500 12px var(--mono);color:var(--muted);margin-right:auto;font-variant-numeric:tabular-nums}
 .loading{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:14px}
 .dots{display:inline-flex;gap:4px}
 .dots i{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:blink 1.1s infinite ease-in-out}
@@ -83,9 +80,20 @@ path.e.veil{opacity:0}
 @keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
 .err{color:var(--bad);font-size:14px}
 
+/* reading-order list */
+.ladder{display:flex;flex-direction:column;gap:2px}
+.ladder h3{margin:12px 0 4px;font:500 11px var(--mono);text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.ladder h3:first-child{margin-top:0}
+.rung{display:flex;align-items:baseline;gap:10px;width:100%;text-align:left;background:none;border:0;border-radius:8px;padding:7px 10px;color:var(--muted);font:14px/1.4 var(--body);cursor:pointer;animation:fade .4s both}
+.rung::before{content:"";flex:none;width:9px;height:9px;border-radius:50%;border:2px solid var(--line);transform:translateY(1px)}
+.rung.learned{color:var(--fg)} .rung.learned::before{background:var(--accent);border-color:var(--accent)}
+.rung.cur{background:var(--soft);color:var(--fg);font-weight:600}
+.rung:hover{background:var(--soft)}
+.rung .flag{margin-left:auto;font:500 11px var(--mono);color:var(--vc);white-space:nowrap}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
 button:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}path.e.draw{stroke-dashoffset:0}}
-@media (max-width:480px){h1{font-size:28px}.node{width:104px;font-size:12px}.stage{gap:38px}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}path.e{stroke-dashoffset:0}}
 </style>
 
 <div class="wrap">
@@ -108,14 +116,18 @@ button:focus-visible,select:focus-visible{outline:2px solid var(--accent);outlin
     </div>
   </form>
 
-  <div class="banner" id="banner" hidden></div>
-  <span class="example" id="exampleTag">Örnek piramit · kendi cümleni yazıp "Piramidi kur"a bas</span>
+  <p class="banner" id="banner" hidden></p>
+  <span class="example" id="exampleTag">Örnek · kendi cümleni yazıp "Piramidi kur"a bas</span>
 
-  <div class="scroller" id="scroller">
-    <div class="stage" id="stage"><svg id="edges" aria-hidden="true"></svg></div>
-  </div>
+  <section class="map" aria-label="Bilgi piramidi">
+    <div class="ends"><span class="lbl">cümle</span><span class="lbl" id="levels"></span></div>
+    <svg id="map" role="group"></svg>
+    <div class="ends"><span class="lbl">aksiyomlar</span><span class="lbl">temel</span></div>
+  </section>
 
-  <section class="panel" id="panel" aria-live="polite"></section>
+  <section class="card" id="card" aria-live="polite"></section>
+
+  <section class="ladder" id="ladder" aria-label="Okuma sırası"></section>
 </div>
 
 <script>
@@ -151,15 +163,11 @@ Her şeyi Türkçe yaz.`;
 
 /* ---------- state ---------- */
 let sample = null;
-let nodes = new Map();      // id -> node
-let order = [];             // insertion order (bottom-up)
-let edges = [];             // {from: lower id, to: upper id, path}
-let layers = new Map();     // level -> element
-let selected = null;
-let step = -1;              // -1 = free mode, else index into steps
-let steps = [];
-let building = false;
-let ctl = null;
+let nodes = new Map(), steps = [], edges = [];
+let cur = -1, reached = -1, building = false, ctl = null;
+const mapSvg = $("map");
+const gEdges = document.createElementNS(SVGNS, "g"), gNodes = document.createElementNS(SVGNS, "g");
+mapSvg.append(gEdges, gNodes);
 
 function el(tag, cls, text){
   const e = document.createElement(tag);
@@ -167,27 +175,19 @@ function el(tag, cls, text){
   if (text != null) e.textContent = text;
   return e;
 }
+function svg(tag, attrs){
+  const e = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+const maxLevel = () => steps.reduce((m, n) => Math.max(m, n.l), 0);
+const isApex = n => steps.length > 1 && n.l === maxLevel();
+const levelName = n => isApex(n) ? "Cümle" : n.l === 0 ? "Aksiyom" : `Seviye ${n.l}`;
 
 function reset(){
-  nodes = new Map(); order = []; edges = []; layers = new Map();
-  selected = null; step = -1; steps = [];
-  const stage = $("stage");
-  stage.querySelectorAll(".layer,.axis").forEach(x => x.remove());
-  $("edges").textContent = "";
-  const axis = el("div", "axis");
-  axis.style.order = 1;
-  axis.append(el("span", null, "↑ temel bilgiler · aksiyomlar"));
-  stage.appendChild(axis);
-}
-
-function layer(l){
-  if (!layers.has(l)){
-    const row = el("div", "layer");
-    row.style.order = -l;
-    layers.set(l, row);
-    $("stage").appendChild(row);
-  }
-  return layers.get(l);
+  nodes = new Map(); steps = []; edges = [];
+  cur = -1; reached = -1;
+  gEdges.textContent = ""; gNodes.textContent = "";
 }
 
 function parseLine(line){
@@ -203,163 +203,154 @@ function parseLine(line){
   } catch { return null; }
 }
 
-function addNode(d, delay = 0){
+function addNode(d){
   const n = { ...d, u: d.u.filter(x => nodes.has(x) && nodes.get(x).l < d.l), ups: [] };
-  nodes.set(n.id, n); order.push(n);
-  const b = el("button", "node v-" + n.v, n.t);
-  b.type = "button";
-  if (n.l === 0) b.classList.add("l0");
-  b.style.setProperty("--d", delay + "ms");
-  if (n.v !== "dogru") b.appendChild(el("i", "dot"));
-  b.addEventListener("click", () => select(n.id));
-  n.el = b;
-  layer(n.l).appendChild(b);
+  nodes.set(n.id, n);
+  steps.push(n);
+  steps.sort((a, b) => a.l - b.l);   // stable: reading order is level by level
+  const g = svg("g", { class: "n", tabindex: "0", role: "button" });
+  g.append(svg("circle", { class: "ring", r: 7 }), svg("circle", { class: "dot", r: 7 }), svg("circle", { class: "hit", r: 18 }));
+  const title = svg("title", {}); title.textContent = n.t; g.append(title);
+  g.addEventListener("click", () => go(steps.indexOf(n)));
+  g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); go(steps.indexOf(n)); } });
+  n.g = g;
+  gNodes.appendChild(g);
   for (const id of n.u){
     nodes.get(id).ups.push(n.id);
-    const p = document.createElementNS(SVGNS, "path");
-    p.setAttribute("class", "e draw");
-    p.setAttribute("pathLength", "1");
-    p.style.setProperty("--d", (delay + 150) + "ms");
-    $("edges").appendChild(p);
+    const p = svg("path", { class: "e", pathLength: 1 });
+    gEdges.appendChild(p);
     edges.push({ from: id, to: n.id, path: p });
   }
-  layoutSoon();
-  return n;
+  layout();
 }
 
-function markApex(){
-  let max = -1;
-  for (const n of order) max = Math.max(max, n.l);
-  for (const n of order) n.el.classList.toggle("apex", n.l === max && order.length > 1);
-  layoutSoon();
-}
-
-/* ---------- edges geometry ---------- */
-let raf = 0;
-function layoutSoon(){ if (!raf) raf = requestAnimationFrame(() => { raf = 0; layout(); }); }
+/* ---------- triangle geometry ---------- */
 function layout(){
-  const stage = $("stage"), r0 = stage.getBoundingClientRect();
-  const svg = $("edges");
-  svg.setAttribute("width", stage.scrollWidth); svg.setAttribute("height", stage.scrollHeight);
+  const W = mapSvg.clientWidth || 320, top = maxLevel();
+  const rowH = 46, pad = 18;
+  const H = pad * 2 + top * rowH;
+  mapSvg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  mapSvg.setAttribute("height", H);
+  const byLevel = new Map();
+  for (const n of steps){ if (!byLevel.has(n.l)) byLevel.set(n.l, []); byLevel.get(n.l).push(n); }
+  for (const [l, row] of byLevel){
+    const gap = Math.min(52, (W - 40) / Math.max(row.length - 1, 1));
+    row.forEach((n, i) => {
+      n.x = W / 2 + (i - (row.length - 1) / 2) * (row.length > 1 ? gap : 0);
+      n.y = pad + (top - l) * rowH;
+      n.g.style.transform = `translate(${n.x}px,${n.y}px)`;
+      const r = isApex(n) ? 11 : 7;
+      n.g.querySelectorAll(".dot,.ring").forEach(c => c.setAttribute("r", r));
+    });
+  }
   for (const e of edges){
-    const a = nodes.get(e.from).el.getBoundingClientRect(), b = nodes.get(e.to).el.getBoundingClientRect();
-    const x1 = a.left + a.width / 2 - r0.left, y1 = a.top - r0.top;
-    const x2 = b.left + b.width / 2 - r0.left, y2 = b.bottom - r0.top;
-    const my = (y1 + y2) / 2;
-    e.path.setAttribute("d", `M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2}`);
+    const a = nodes.get(e.from), b = nodes.get(e.to);
+    e.path.setAttribute("d", `M${a.x},${a.y} L${b.x},${b.y}`);
   }
+  paint();
 }
-new ResizeObserver(layoutSoon).observe($("stage"));
-function centerScroll(){ const s = $("scroller"); s.scrollLeft = (s.scrollWidth - s.clientWidth) / 2; }
+new ResizeObserver(() => layout()).observe(mapSvg);
 
-/* ---------- selection & panel ---------- */
-function levelName(n){
-  if (n.el.classList.contains("apex")) return "Cümle";
-  return n.l === 0 ? "Aksiyom" : `Seviye ${n.l}`;
-}
-
-function select(id){
-  selected = id;
-  const n = nodes.get(id);
-  for (const m of order) m.el.classList.remove("sel", "in", "out");
-  for (const e of edges) e.path.classList.toggle("hot", e.to === id);
-  if (n){
-    n.el.classList.add("sel");
-    n.u.forEach(x => nodes.get(x).el.classList.add("in"));
-    if (step < 0) n.ups.forEach(x => nodes.get(x).el.classList.add("out"));
+/* ---------- painting state ---------- */
+function paint(){
+  const now = steps[cur];
+  steps.forEach((n, i) => {
+    const learned = building || i <= reached;
+    n.g.classList.toggle("learned", learned);
+    n.g.classList.toggle("cur", n === now);
+    n.g.classList.toggle("in", !!now && now.u.includes(n.id));
+  });
+  for (const e of edges){
+    const a = steps.indexOf(nodes.get(e.from)), b = steps.indexOf(nodes.get(e.to));
+    e.path.classList.toggle("learned", building || (a <= reached && b <= reached));
+    e.path.classList.toggle("hot", !!now && e.to === now.id);
   }
-  renderPanel();
+  const lv = new Set(steps.map(n => n.l)).size;
+  $("levels").textContent = steps.length ? `${steps.length} fact · ${lv} seviye` : "";
+  renderCard();
+  renderLadder();
+}
+
+function go(i){
+  if (building || i < 0 || i >= steps.length) return;
+  cur = i;
+  reached = Math.max(reached, i);
+  const card = $("card");
+  card.classList.remove("flip"); void card.offsetWidth; card.classList.add("flip");
+  paint();
 }
 
 function refChip(id, up){
   const m = nodes.get(id);
   const c = el("button", "ref" + (up ? " up" : ""), m.t);
   c.type = "button";
-  c.addEventListener("click", () => { if (step >= 0) exitSteps(); select(id); });
+  c.addEventListener("click", () => go(steps.indexOf(m)));
   return c;
 }
 
-function renderPanel(){
-  const p = $("panel");
-  p.textContent = "";
+function renderCard(){
+  const c = $("card");
+  c.textContent = "";
   if (building){
     const row = el("div", "loading");
     const dots = el("span", "dots"); dots.append(el("i"), el("i"), el("i"));
+    row.append(dots, el("span", null, steps.length ? `Claude piramidi kuruyor · ${steps.length} fact` : "Claude aksiyomları düşünüyor"));
     const stop = el("button", "btn ghost", "Durdur"); stop.type = "button";
     stop.addEventListener("click", () => ctl?.abort());
-    row.append(dots, el("span", null, order.length ? `Claude piramidi kuruyor · ${order.length} fact` : "Claude aksiyomları düşünüyor"));
-    p.append(row);
-    const nav = el("div", "nav"); nav.append(el("span", "count"), stop); p.append(nav);
+    const nav = el("div", "nav"); nav.append(el("span", "count"), stop);
+    c.append(row, nav);
     return;
   }
-  if (!order.length){ p.append(el("p", null, "Bir cümle yaz ve piramidi kur.")); return; }
+  const n = steps[cur];
+  if (!n){ c.append(el("p", null, "Bir cümle yaz ve piramidi kur.")); return; }
 
-  const n = nodes.get(selected);
-  if (n){
-    const meta = el("div", "meta v-" + n.v);
-    meta.append(el("span", "lbl", levelName(n)), el("span", "verdict", VERDICT[n.v]));
-    p.append(meta, el("h2", null, n.t));
-    if (n.d) p.append(el("p", null, n.d));
-    if (n.n && n.v !== "dogru"){
-      const c = el("p", "n v-" + n.v); c.append(el("b", null, "Düzeltme: "), n.n); p.append(c);
-    }
-    if (n.u.length){
-      const r = el("div", "refs"); r.append(el("span", null, "Dayandığı:"));
-      n.u.forEach(id => r.append(refChip(id, false))); p.append(r);
-    }
-    if (step < 0 && n.ups.length){
-      const r = el("div", "refs"); r.append(el("span", null, "Üstüne kurulan:"));
-      n.ups.forEach(id => r.append(refChip(id, true))); p.append(r);
-    }
-  } else {
-    p.append(el("p", null, "Aksiyomlardan başlayıp cümleye kadar adım adım çık. Ya da piramitte istediğin bir düğüme tıkla."));
+  const meta = el("div", "meta v-" + n.v);
+  meta.append(el("span", "lbl", levelName(n)), el("span", "verdict", VERDICT[n.v]));
+  c.append(meta, el("h2", null, n.t));
+  if (n.d) c.append(el("p", null, n.d));
+  if (n.n && n.v !== "dogru"){
+    const x = el("p", "n v-" + n.v); x.append(el("b", null, "Düzeltme: "), n.n); c.append(x);
+  }
+  if (n.u.length){
+    const r = el("div", "refs"); r.append(el("span", null, "Dayandığı:"));
+    n.u.forEach(id => r.append(refChip(id, false))); c.append(r);
+  }
+  const ups = n.ups.filter(id => steps.indexOf(nodes.get(id)) <= reached);
+  if (ups.length){
+    const r = el("div", "refs"); r.append(el("span", null, "Üstüne kurulan:"));
+    ups.forEach(id => r.append(refChip(id, true))); c.append(r);
   }
 
   const nav = el("div", "nav");
-  if (step >= 0){
-    nav.append(el("span", "count", `Adım ${step + 1} / ${steps.length}`));
-    const back = el("button", "btn ghost", "← Geri"); back.type = "button"; back.disabled = step === 0;
-    back.addEventListener("click", () => setStep(step - 1));
-    const all = el("button", "btn ghost", "Hepsini göster"); all.type = "button";
-    all.addEventListener("click", () => { exitSteps(); select(steps[steps.length - 1].id); });
-    const next = el("button", "btn", step === steps.length - 1 ? "Bitti" : "İleri →"); next.type = "button";
-    next.addEventListener("click", () => step === steps.length - 1 ? exitSteps() : setStep(step + 1));
-    nav.append(back, all, next);
-  } else {
-    nav.append(el("span", "count", `${order.length} fact · ${new Set(order.map(x => x.l)).size} seviye`));
-    const go = el("button", "btn", "Aksiyomlardan başla ↑"); go.type = "button";
-    go.addEventListener("click", startSteps);
-    nav.append(go);
-  }
-  p.append(nav);
+  nav.append(el("span", "count", `${cur + 1} / ${steps.length}`));
+  const back = el("button", "btn ghost", "← Geri"); back.type = "button"; back.disabled = cur === 0;
+  back.addEventListener("click", () => go(cur - 1));
+  const last = cur === steps.length - 1;
+  const next = el("button", "btn", last ? "Baştan" : "İleri →"); next.type = "button";
+  next.addEventListener("click", () => go(last ? 0 : cur + 1));
+  nav.append(back, next);
+  c.append(nav);
 }
 
-/* ---------- step-by-step mode ---------- */
-function startSteps(){
-  steps = [...order].sort((a, b) => a.l - b.l);
-  setStep(0);
-}
-function setStep(k){
-  step = k;
-  const shown = new Set(steps.slice(0, k + 1).map(n => n.id));
-  for (const n of order){
-    const was = n.el.classList.contains("veil");
-    n.el.classList.toggle("veil", !shown.has(n.id));
-    if (was && shown.has(n.id)){ n.el.classList.remove("just"); void n.el.offsetWidth; n.el.classList.add("just"); }
-  }
-  for (const e of edges){
-    const vis = shown.has(e.from) && shown.has(e.to);
-    e.path.classList.toggle("veil", !vis);
-    if (vis && e.to === steps[k].id){ e.path.classList.remove("draw"); void e.path.getBBox(); e.path.style.setProperty("--d", "120ms"); e.path.classList.add("draw"); }
-  }
-  select(steps[k].id);
-  steps[k].el.scrollIntoView({ block: "nearest", inline: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-}
-function exitSteps(){
-  step = -1;
-  for (const n of order) n.el.classList.remove("veil");
-  for (const e of edges) e.path.classList.remove("veil");
-  select(selected);
+function renderLadder(){
+  const L = $("ladder");
+  L.textContent = "";
+  if (!steps.length) return;
+  let lastLevel = -1;
+  steps.forEach((n, i) => {
+    if (n.l !== lastLevel){
+      lastLevel = n.l;
+      L.append(el("h3", null, isApex(n) ? "Cümle" : n.l === 0 ? "Aksiyomlar" : `Seviye ${n.l}`));
+    }
+    const r = el("button", "rung v-" + n.v);
+    r.type = "button";
+    r.append(el("span", null, n.t));
+    if (n.v !== "dogru") r.append(el("span", "flag", VERDICT[n.v]));
+    r.classList.toggle("learned", building || i <= reached);
+    r.classList.toggle("cur", i === cur && !building);
+    r.addEventListener("click", () => { go(i); $("card").scrollIntoView({ block: "nearest", behavior: "smooth" }); });
+    L.append(r);
+  });
 }
 
 /* ---------- building with Claude ---------- */
@@ -369,35 +360,29 @@ async function build(s){
   $("exampleTag").hidden = true;
   building = true;
   $("build").disabled = true;
-  renderPanel();
+  paint();
   ctl = new AbortController();
   const my = ctl;
   let pending = "", failure = null;
   const eat = chunk => {
     const lines = (pending + chunk).split("\n");
     pending = lines.pop();
-    for (const line of lines){
-      const d = parseLine(line);
-      if (d){ addNode(d); if (order.length === 1) requestAnimationFrame(centerScroll); renderPanel(); }
-    }
+    for (const line of lines){ const d = parseLine(line); if (d) addNode(d); }
   };
   try {
     await sample(prompt(s), { signal: my.signal, modelTier: $("tier").value, onText: ({ delta }) => eat(delta) });
   } catch (e) { failure = e; }
-  if (my !== ctl) return;           // a newer build replaced this one
+  if (my !== ctl) return;
   const last = parseLine(pending);
   if (last) addNode(last);
   building = false;
   $("build").disabled = !sample;
-  markApex();
-  requestAnimationFrame(centerScroll);
-
-  if (failure && FATAL.includes(failure.code)){ shutDown(ERR[failure.code] || "Claude bu sayfada kullanılamıyor."); }
-  renderPanel();
-  if (!order.length && failure?.code !== "cancelled"){
-    $("panel").prepend(el("p", "err", failure ? (ERR[failure.code] || "Bağlantı sorunu oldu. Tekrar dene.") : "Anlaşılır bir yanıt gelmedi. Tekrar dene."));
+  if (failure && FATAL.includes(failure.code)) shutDown(ERR[failure.code] || "Claude bu sayfada kullanılamıyor.");
+  if (steps.length) go(0); else paint();
+  if (!steps.length && failure?.code !== "cancelled"){
+    $("card").prepend(el("p", "err", failure ? (ERR[failure.code] || "Bağlantı sorunu oldu. Tekrar dene.") : "Anlaşılır bir yanıt gelmedi. Tekrar dene."));
   } else if (failure && failure.code !== "cancelled" && !FATAL.includes(failure.code)){
-    $("panel").prepend(el("p", "err", (ERR[failure.code] || "Bağlantı yarıda kesildi.") + " Piramit eksik kalmış olabilir."));
+    $("card").prepend(el("p", "err", (ERR[failure.code] || "Bağlantı yarıda kesildi.") + " Piramit eksik kalmış olabilir."));
   }
 }
 
@@ -437,15 +422,13 @@ const EXAMPLE = [
 ];
 
 reset();
-EXAMPLE.forEach((d, i) => addNode({ v: "dogru", n: "", ...d }, d.l * 380 + (i % 8) * 70));
-markApex();
-renderPanel();
-requestAnimationFrame(centerScroll);
+EXAMPLE.forEach(d => addNode({ v: "dogru", n: "", ...d }));
+go(0);
 
 /* ---------- connect ---------- */
 (async () => {
   try { sample = window.claude ? await window.claude.use("sample") : null; } catch { sample = null; }
   if (sample){ $("status").innerHTML = "Claude: <b>hazır</b>"; $("build").disabled = building; }
-  else shutDown("Claude'a buradan ulaşılamıyor. Piramit kurmak için sayfayı claude.ai'da giriş yapmış olarak aç. Örnek piramidi yine de gezebilirsin.");
+  else shutDown("Claude'a buradan ulaşılamıyor. Piramit kurmak için sayfayı claude.ai'da giriş yapmış olarak aç. Örneği yine de gezebilirsin.");
 })();
 </script>
